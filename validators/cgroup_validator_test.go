@@ -29,27 +29,36 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 	cgroupSpec := []string{"system1", "system2"}
 	for desc, test := range map[string]struct {
 		subsystems []string
+		required   bool
 		err        bool
 	}{
-		"missing cgroup subsystem should report error": {
+		"missing required cgroup subsystem should report error": {
 			subsystems: []string{"system1"},
+			required:   true,
+			err:        true,
+		},
+		"missing optional cgroup subsystem should report error": {
+			subsystems: []string{"system1"},
+			required:   false,
 			err:        true,
 		},
 		"extra cgroup subsystems should not report error": {
 			subsystems: []string{"system1", "system2", "system3"},
+			required:   true,
 			err:        false,
 		},
 		"subsystems the same with spec should not report error": {
 			subsystems: []string{"system1", "system2"},
+			required:   false,
 			err:        false,
 		},
 	} {
 		t.Run(desc, func(t *testing.T) {
-			err := v.validateCgroupSubsystems(cgroupSpec, test.subsystems)
+			err := v.validateCgroupSubsystems(cgroupSpec, test.subsystems, test.required)
 			if !test.err {
 				assert.Nil(t, err, "%q: Expect error not to occur with cgroup", desc)
 			} else {
-				assert.NotNil(t, err, "%q: Expect error to occur with docker info", desc)
+				assert.NotNil(t, err, "%q: Expect error to occur with cgroup", desc)
 			}
 		})
 	}

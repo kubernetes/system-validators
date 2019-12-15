@@ -53,6 +53,14 @@ type KernelSpec struct {
 	Forbidden []KernelConfig `json:"forbidden,omitempty"`
 }
 
+// CgroupSpec defines the specification for cgroups.
+type CgroupSpec struct {
+	// Required contains all required cgroups
+	Required []string `json:"required,omitempty"`
+	// Optional contains all optional cgroups
+	Optional []string `json:"optional,omitempty"`
+}
+
 // DockerSpec defines the requirement configuration for docker. Currently, it only
 // contains spec for graph driver.
 type DockerSpec struct {
@@ -113,7 +121,7 @@ type SysSpec struct {
 	// KernelConfig defines the spec for kernel.
 	KernelSpec KernelSpec `json:"kernelSpec,omitempty"`
 	// Cgroups is the required cgroups.
-	Cgroups []string `json:"cgroups,omitempty"`
+	CgroupSpec CgroupSpec `json:"cgroupSpec,omitempty"`
 	// RuntimeSpec defines the spec for runtime.
 	RuntimeSpec RuntimeSpec `json:"runtimeSpec,omitempty"`
 	// PackageSpec defines the required packages and their versions.

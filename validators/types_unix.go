@@ -56,7 +56,17 @@ var DefaultSysSpec = SysSpec{
 		},
 		Forbidden: []KernelConfig{},
 	},
-	Cgroups: []string{"cpu", "cpuacct", "cpuset", "devices", "freezer", "memory"},
+	CgroupSpec: CgroupSpec{
+		Required: []string{"cpu", "cpuacct", "cpuset", "devices", "freezer", "memory"},
+		Optional: []string{
+			// The hugetlb cgroup is optional since some kernels are compiled without support for huge pages
+			// and therefore lacks corresponding hugetlb cgroup
+			"hugetlb",
+			// The pids cgroup is optional since it is only used when at least one of the feature flags "SupportPodPidsLimit" and
+			// "SupportNodePidsLimit" is enabled
+			"pids",
+		},
+	},
 	RuntimeSpec: RuntimeSpec{
 		DockerSpec: &DockerSpec{
 			Version:     []string{`1\.1[1-3]\..*`, `17\.0[3,6,9]\..*`, `18\.0[6,9]\..*`, `19\.03\..*`},

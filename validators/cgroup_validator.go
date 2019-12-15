@@ -46,15 +46,14 @@ func (c *CgroupsValidator) Validate(spec SysSpec) ([]error, []error) {
 	if err != nil {
 		return nil, []error{errors.Wrap(err, "failed to get cgroup subsystems")}
 	}
-	if err = c.validateCgroupSubsystems(spec.Cgroups, subsystems); err != nil {
-		return nil, []error{err}
-	}
-	return nil, nil
+	errs := c.validateCgroupSubsystems(spec.CgroupSpec.Required, subsystems, true)
+	warns := c.validateCgroupSubsystems(spec.CgroupSpec.Optional, subsystems, false)
+	return warns, errs
 }
 
-func (c *CgroupsValidator) validateCgroupSubsystems(cgroupSpec, subsystems []string) error {
-	missing := []string{}
-	for _, cgroup := range cgroupSpec {
+func (c *CgroupsValidator) validateCgroupSubsystems(cgroups, subsystems []string, required bool) []error {
+	var missing []string
+	for _, cgroup := range cgroups {
 		found := false
 		for _, subsystem := range subsystems {
 			if cgroup == subsystem {
@@ -65,13 +64,16 @@ func (c *CgroupsValidator) validateCgroupSubsystems(cgroupSpec, subsystems []str
 		item := cgroupsConfigPrefix + strings.ToUpper(cgroup)
 		if found {
 			c.Reporter.Report(item, "enabled", good)
-		} else {
+			continue
+		} else if required {
 			c.Reporter.Report(item, "missing", bad)
-			missing = append(missing, cgroup)
+		} else {
+			c.Reporter.Report(item, "missing", warn)
 		}
+		missing = append(missing, cgroup)
 	}
-	if len(missing) > 0 {
-		return errors.Errorf("missing cgroups: %s", strings.Join(missing, " "))
+	if missing != nil {
+		return []error{errors.Errorf("missing cgroups: %s", strings.Join(missing, " "))}
 	}
 	return nil
 
