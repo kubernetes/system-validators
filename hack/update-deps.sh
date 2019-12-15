@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-# Runs go mod tidy, go mod vendor, and then prun vendor
+# Runs go mod tidy
 #
 # Usage:
 #   update-deps.sh
@@ -27,21 +26,6 @@ set -o pipefail
 source "$(dirname "$0")/utils.sh"
 # cd to the root path
 cd_root_path
-
-prune-vendor() {
-  find vendor -type f \
-    -not -iname "*.c" \
-    -not -iname "*.go" \
-    -not -iname "*.h" \
-    -not -iname "*.proto" \
-    -not -iname "*.s" \
-    -not -iname "AUTHORS*" \
-    -not -iname "CONTRIBUTORS*" \
-    -not -iname "COPYING*" \
-    -not -iname "LICENSE*" \
-    -not -iname "NOTICE*" \
-    -exec rm '{}' \;
-}
 
 export GO111MODULE="on"
 go mod tidy
