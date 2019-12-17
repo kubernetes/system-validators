@@ -41,17 +41,22 @@ const (
 )
 
 // Validate is part of the system.Validator interface.
-func (c *CgroupsValidator) Validate(spec SysSpec) ([]error, []error) {
+func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 	subsystems, err := c.getCgroupSubsystems()
 	if err != nil {
 		return nil, []error{errors.Wrap(err, "failed to get cgroup subsystems")}
 	}
-	errs := c.validateCgroupSubsystems(spec.CgroupSpec.Required, subsystems, true)
-	warns := c.validateCgroupSubsystems(spec.CgroupSpec.Optional, subsystems, false)
-	return warns, errs
+	if missingRequired := c.validateCgroupSubsystems(spec.CgroupSpec.Required, subsystems, true); len(missingRequired) != 0 {
+		errs = []error{errors.Errorf("missing required cgroups: %s", strings.Join(missingRequired, " "))}
+	}
+	if missingOptional := c.validateCgroupSubsystems(spec.CgroupSpec.Optional, subsystems, false); len(missingOptional) != 0 {
+		warns = []error{errors.Errorf("missing optional cgroups: %s", strings.Join(missingOptional, " "))}
+	}
+	return
 }
 
-func (c *CgroupsValidator) validateCgroupSubsystems(cgroups, subsystems []string, required bool) []error {
+// validateCgroupSubsystems returns a list with the missing cgroups in the cgroup
+func (c *CgroupsValidator) validateCgroupSubsystems(cgroups, subsystems []string, required bool) []string {
 	var missing []string
 	for _, cgroup := range cgroups {
 		found := false
@@ -72,10 +77,7 @@ func (c *CgroupsValidator) validateCgroupSubsystems(cgroups, subsystems []string
 		}
 		missing = append(missing, cgroup)
 	}
-	if missing != nil {
-		return []error{errors.Errorf("missing cgroups: %s", strings.Join(missing, " "))}
-	}
-	return nil
+	return missing
 
 }
 
