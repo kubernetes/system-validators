@@ -41,20 +41,24 @@ const (
 )
 
 // Validate is part of the system.Validator interface.
-func (c *CgroupsValidator) Validate(spec SysSpec) ([]error, []error) {
+func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 	subsystems, err := c.getCgroupSubsystems()
 	if err != nil {
 		return nil, []error{errors.Wrap(err, "failed to get cgroup subsystems")}
 	}
-	if err = c.validateCgroupSubsystems(spec.Cgroups, subsystems); err != nil {
-		return nil, []error{err}
+	if missingRequired := c.validateCgroupSubsystems(spec.CgroupSpec.Required, subsystems, true); len(missingRequired) != 0 {
+		errs = []error{errors.Errorf("missing required cgroups: %s", strings.Join(missingRequired, " "))}
 	}
-	return nil, nil
+	if missingOptional := c.validateCgroupSubsystems(spec.CgroupSpec.Optional, subsystems, false); len(missingOptional) != 0 {
+		warns = []error{errors.Errorf("missing optional cgroups: %s", strings.Join(missingOptional, " "))}
+	}
+	return
 }
 
-func (c *CgroupsValidator) validateCgroupSubsystems(cgroupSpec, subsystems []string) error {
-	missing := []string{}
-	for _, cgroup := range cgroupSpec {
+// validateCgroupSubsystems returns a list with the missing cgroups in the cgroup
+func (c *CgroupsValidator) validateCgroupSubsystems(cgroups, subsystems []string, required bool) []string {
+	var missing []string
+	for _, cgroup := range cgroups {
 		found := false
 		for _, subsystem := range subsystems {
 			if cgroup == subsystem {
@@ -65,15 +69,15 @@ func (c *CgroupsValidator) validateCgroupSubsystems(cgroupSpec, subsystems []str
 		item := cgroupsConfigPrefix + strings.ToUpper(cgroup)
 		if found {
 			c.Reporter.Report(item, "enabled", good)
-		} else {
+			continue
+		} else if required {
 			c.Reporter.Report(item, "missing", bad)
-			missing = append(missing, cgroup)
+		} else {
+			c.Reporter.Report(item, "missing", warn)
 		}
+		missing = append(missing, cgroup)
 	}
-	if len(missing) > 0 {
-		return errors.Errorf("missing cgroups: %s", strings.Join(missing, " "))
-	}
-	return nil
+	return missing
 
 }
 

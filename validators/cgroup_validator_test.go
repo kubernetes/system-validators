@@ -26,31 +26,40 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 	v := &CgroupsValidator{
 		Reporter: DefaultReporter,
 	}
-	cgroupSpec := []string{"system1", "system2"}
 	for desc, test := range map[string]struct {
 		subsystems []string
-		err        bool
+		cgroupSpec []string
+		required   bool
+		missing    []string
 	}{
-		"missing cgroup subsystem should report error": {
+		"missing required cgroup subsystem should report missing": {
+			cgroupSpec: []string{"system1", "system2"},
 			subsystems: []string{"system1"},
-			err:        true,
+			required:   true,
+			missing:    []string{"system2"},
 		},
-		"extra cgroup subsystems should not report error": {
+		"missing optional cgroup subsystem should report missing": {
+			cgroupSpec: []string{"system1", "system2"},
+			subsystems: []string{"system1"},
+			required:   false,
+			missing:    []string{"system2"},
+		},
+		"extra cgroup subsystems should not report missing": {
+			cgroupSpec: []string{"system1", "system2"},
 			subsystems: []string{"system1", "system2", "system3"},
-			err:        false,
+			required:   true,
+			missing:    nil,
 		},
-		"subsystems the same with spec should not report error": {
+		"subsystems the same with spec should not report missing": {
+			cgroupSpec: []string{"system1"},
 			subsystems: []string{"system1", "system2"},
-			err:        false,
+			required:   false,
+			missing:    nil,
 		},
 	} {
 		t.Run(desc, func(t *testing.T) {
-			err := v.validateCgroupSubsystems(cgroupSpec, test.subsystems)
-			if !test.err {
-				assert.Nil(t, err, "%q: Expect error not to occur with cgroup", desc)
-			} else {
-				assert.NotNil(t, err, "%q: Expect error to occur with docker info", desc)
-			}
+			missing := v.validateCgroupSubsystems(test.cgroupSpec, test.subsystems, test.required)
+			assert.Equal(t, test.missing, missing, "%q: Expect error not to occur with cgroup", desc)
 		})
 	}
 }
