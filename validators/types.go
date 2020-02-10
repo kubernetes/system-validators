@@ -120,8 +120,10 @@ type SysSpec struct {
 	OS string `json:"os,omitempty"`
 	// KernelConfig defines the spec for kernel.
 	KernelSpec KernelSpec `json:"kernelSpec,omitempty"`
-	// Cgroups is the required cgroups.
+	// Cgroups is the required cgroups v1.
 	CgroupSpec CgroupSpec `json:"cgroupSpec,omitempty"`
+	// Cgroups is the required cgroups v2.
+	CgroupV2Spec CgroupSpec `json:"cgroupV2Spec,omitempty"`
 	// RuntimeSpec defines the spec for runtime.
 	RuntimeSpec RuntimeSpec `json:"runtimeSpec,omitempty"`
 	// PackageSpec defines the required packages and their versions.

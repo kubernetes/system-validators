@@ -23,6 +23,9 @@ import (
 )
 
 func TestValidateCgroupSubsystem(t *testing.T) {
+	// hardcoded cgroup v2 subsystems
+	pseudoSubsystems := []string{"devices", "freezer"}
+
 	v := &CgroupsValidator{
 		Reporter: DefaultReporter,
 	}
@@ -53,6 +56,30 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 		"subsystems the same with spec should not report missing": {
 			cgroupSpec: []string{"system1"},
 			subsystems: []string{"system1", "system2"},
+			required:   false,
+			missing:    nil,
+		},
+		"missing required cgroup subsystem when pseudo hardcoded subsystems are set": {
+			cgroupSpec: []string{"system1", "devices", "freezer"},
+			subsystems: append(pseudoSubsystems),
+			required:   true,
+			missing:    []string{"system1"},
+		},
+		"missing optional cgroup subsystem when pseudo hardcoded subsystems are set": {
+			cgroupSpec: []string{"system1", "devices", "freezer"},
+			subsystems: append(pseudoSubsystems),
+			required:   false,
+			missing:    []string{"system1"},
+		},
+		"extra cgroup subsystems when pseudo hardcoded subsystems are set": {
+			cgroupSpec: []string{"system1", "devices", "freezer"},
+			subsystems: append(pseudoSubsystems, "system1", "system2"),
+			required:   true,
+			missing:    nil,
+		},
+		"matching list of cgroup subsystems including pseudo hardcoded subsystems": {
+			cgroupSpec: []string{"system1", "devices", "freezer"},
+			subsystems: append(pseudoSubsystems, "system1"),
 			required:   false,
 			missing:    nil,
 		},
