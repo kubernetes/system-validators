@@ -28,7 +28,9 @@ export GO111MODULE=on
 ERROR=0
 DIRS=$(git ls-files | grep -v "vendor\/" | grep ".go" | xargs dirname | grep -v "\." | cut -d '/' -f 1 | uniq)
 while read -r dir; do
-    go vet ./"$dir"/... || ERROR=1
+    for os in {darwin,linux,windows}; do
+        GOOS=$os go vet ./"$dir"/... || ERROR=1
+    done
 done <<< "$DIRS"
 
 if [[ "${ERROR}" = 1 ]]; then
