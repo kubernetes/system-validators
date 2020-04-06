@@ -18,10 +18,13 @@ package system
 
 import (
 	"bufio"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 var _ Validator = &CgroupsValidator{}
@@ -38,18 +41,42 @@ func (c *CgroupsValidator) Name() string {
 
 const (
 	cgroupsConfigPrefix = "CGROUPS_"
+	unifiedMountpoint   = "/sys/fs/cgroup"
 )
 
 // Validate is part of the system.Validator interface.
 func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
-	subsystems, err := c.getCgroupSubsystems()
-	if err != nil {
-		return nil, []error{errors.Wrap(err, "failed to get cgroup subsystems")}
+	// Get the subsystems from /sys/fs/cgroup/cgroup.controllers when cgroup v2 is used.
+	// /proc/cgroups is meaningless for v2
+	// https://github.com/torvalds/linux/blob/v5.3/Documentation/admin-guide/cgroup-v2.rst#deprecated-v1-core-features
+	var st unix.Statfs_t
+	var err error
+	if err := unix.Statfs(unifiedMountpoint, &st); err != nil {
+		return nil, []error{errors.Wrap(err, "cannot statfs the cgroupv2 root")}
 	}
-	if missingRequired := c.validateCgroupSubsystems(spec.CgroupSpec.Required, subsystems, true); len(missingRequired) != 0 {
+	var requiredCgroupSpec []string
+	var optionalCgroupSpec []string
+	var subsystems []string
+	if st.Type == unix.CGROUP2_SUPER_MAGIC {
+		subsystems, err = c.getCgroupV2Subsystems()
+		if err != nil {
+			return nil, []error{errors.Wrap(err, "failed to get cgroup v2 subsystems")}
+		}
+		requiredCgroupSpec = spec.CgroupV2Spec.Required
+		optionalCgroupSpec = spec.CgroupV2Spec.Optional
+	} else {
+		subsystems, err = c.getCgroupV1Subsystems()
+		if err != nil {
+			return nil, []error{errors.Wrap(err, "failed to get cgroup v1 subsystems")}
+		}
+		requiredCgroupSpec = spec.CgroupSpec.Required
+		optionalCgroupSpec = spec.CgroupSpec.Optional
+	}
+
+	if missingRequired := c.validateCgroupSubsystems(requiredCgroupSpec, subsystems, true); len(missingRequired) != 0 {
 		errs = []error{errors.Errorf("missing required cgroups: %s", strings.Join(missingRequired, " "))}
 	}
-	if missingOptional := c.validateCgroupSubsystems(spec.CgroupSpec.Optional, subsystems, false); len(missingOptional) != 0 {
+	if missingOptional := c.validateCgroupSubsystems(optionalCgroupSpec, subsystems, false); len(missingOptional) != 0 {
 		warns = []error{errors.Errorf("missing optional cgroups: %s", strings.Join(missingOptional, " "))}
 	}
 	return
@@ -81,7 +108,8 @@ func (c *CgroupsValidator) validateCgroupSubsystems(cgroups, subsystems []string
 
 }
 
-func (c *CgroupsValidator) getCgroupSubsystems() ([]string, error) {
+func (c *CgroupsValidator) getCgroupV1Subsystems() ([]string, error) {
+	// Get the subsystems from /proc/cgroups when cgroup v1 is used.
 	f, err := os.Open("/proc/cgroups")
 	if err != nil {
 		return nil, err
@@ -102,5 +130,22 @@ func (c *CgroupsValidator) getCgroupSubsystems() ([]string, error) {
 			}
 		}
 	}
+	return subsystems, nil
+}
+
+func (c *CgroupsValidator) getCgroupV2Subsystems() ([]string, error) {
+	// Some controllers are implicitly enabled by the kernel.
+	// Those controllers do not appear in /sys/fs/cgroup/cgroup.controllers.
+	// https://github.com/torvalds/linux/blob/v5.3/kernel/cgroup/cgroup.c#L433-L434
+	// We assume these are always available, as it is hard to detect availability.
+	// So, we hardcode the following as "pseudo" controllers.
+	// - devices: implemented in kernel 4.15
+	// - freezer: implemented in kernel 5.2
+	pseudo := []string{"devices", "freezer"}
+	data, err := ioutil.ReadFile(filepath.Join(unifiedMountpoint, "cgroup.controllers"))
+	if err != nil {
+		return nil, err
+	}
+	subsystems := append(pseudo, strings.Fields(string(data))...)
 	return subsystems, nil
 }

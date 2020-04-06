@@ -67,6 +67,10 @@ var DefaultSysSpec = SysSpec{
 			"pids",
 		},
 	},
+	CgroupV2Spec: CgroupSpec{
+		Required: []string{"cpu", "cpuset", "devices", "freezer", "memory"},
+		Optional: []string{"hugetlb", "pids"},
+	},
 	RuntimeSpec: RuntimeSpec{
 		DockerSpec: &DockerSpec{
 			Version:     []string{`1\.1[1-3]\..*`, `17\.0[3,6,9]\..*`, `18\.0[6,9]\..*`, `19\.03\..*`},
