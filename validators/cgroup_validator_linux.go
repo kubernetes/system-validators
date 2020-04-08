@@ -64,15 +64,15 @@ func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 		if err != nil {
 			return nil, []error{errors.Wrap(err, "failed to get cgroup v2 subsystems")}
 		}
-		requiredCgroupSpec = spec.CgroupV2Spec.Required
-		optionalCgroupSpec = spec.CgroupV2Spec.Optional
+		requiredCgroupSpec = spec.CgroupsV2
+		optionalCgroupSpec = spec.CgroupsV2Optional
 	} else {
 		subsystems, err = c.getCgroupV1Subsystems()
 		if err != nil {
 			return nil, []error{errors.Wrap(err, "failed to get cgroup v1 subsystems")}
 		}
-		requiredCgroupSpec = spec.CgroupSpec.Required
-		optionalCgroupSpec = spec.CgroupSpec.Optional
+		requiredCgroupSpec = spec.Cgroups
+		optionalCgroupSpec = spec.CgroupsOptional
 	}
 
 	if missingRequired := c.validateCgroupSubsystems(requiredCgroupSpec, subsystems, true); len(missingRequired) != 0 {
