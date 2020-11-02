@@ -48,11 +48,13 @@ var DefaultSysSpec = SysSpec{
 			{Name: "PROC_FS"},
 			{Name: "NETFILTER_XT_TARGET_REDIRECT", Aliases: []string{"IP_NF_TARGET_REDIRECT"}},
 			{Name: "NETFILTER_XT_MATCH_COMMENT"},
+			{Name: "FAIR_GROUP_SCHED"},
 		},
 		Optional: []KernelConfig{
 			{Name: "OVERLAY_FS", Aliases: []string{"OVERLAYFS_FS"}, Description: "Required for overlayfs."},
 			{Name: "AUFS_FS", Description: "Required for aufs."},
 			{Name: "BLK_DEV_DM", Description: "Required for devicemapper."},
+			{Name: "CFS_BANDWIDTH", Description: "Required for CPU quota."},
 		},
 		Forbidden: []KernelConfig{},
 	},
