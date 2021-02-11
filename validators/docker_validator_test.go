@@ -28,7 +28,7 @@ func TestValidateDockerInfo(t *testing.T) {
 		Reporter: DefaultReporter,
 	}
 	spec := &DockerSpec{
-		Version:     []string{`1\.13\..*`, `17\.0[3,6,9]\..*`, `18\.0[6,9]\..*`, `19\.03\..*`},
+		Version:     []string{`1\.13\..*`, `17\.0[3,6,9]\..*`, `18\.0[6,9]\..*`, `19\.03\..*`, `20\.10\..*`},
 		GraphDriver: []string{"driver_1", "driver_2"},
 	}
 	for _, test := range []struct {
@@ -96,6 +96,12 @@ func TestValidateDockerInfo(t *testing.T) {
 			info: dockerInfo{Driver: "driver_2", ServerVersion: "19.06.0"},
 			err:  false,
 			warn: true,
+		},
+		{
+			name: "valid Docker version 20.10.3",
+			info: dockerInfo{Driver: "driver_2", ServerVersion: "20.10.3"},
+			err:  false,
+			warn: false,
 		},
 		{
 			name: "Docker daemon not available",
