@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
-
-	"github.com/pkg/errors"
 )
 
 func TestExtractUpstreamVersion(t *testing.T) {
@@ -169,7 +167,7 @@ func (m testPackageManager) getPackageVersion(packageName string) (string, error
 	if v, ok := m.packageVersions[packageName]; ok {
 		return v, nil
 	}
-	return "", errors.Errorf("package %q does not exist", packageName)
+	return "", fmt.Errorf("package %q does not exist", packageName)
 }
 
 func TestValidatePackageVersion(t *testing.T) {
@@ -204,7 +202,7 @@ func TestValidatePackageVersion(t *testing.T) {
 				{Name: "bar", VersionRange: ">=3.0"},
 			},
 			errs: []error{
-				errors.New("package \"bar 2.1.0\" does not meet the spec \"bar (>=3.0)\""),
+				fmt.Errorf("package \"bar 2.1.0\" does not meet the spec \"bar (>=3.0)\""),
 			},
 		},
 		{
@@ -213,7 +211,7 @@ func TestValidatePackageVersion(t *testing.T) {
 				{Name: "baz"},
 			},
 			errs: []error{
-				errors.New("package \"baz\" does not exist"),
+				fmt.Errorf("package \"baz\" does not exist"),
 			},
 		},
 		{
