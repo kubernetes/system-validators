@@ -20,6 +20,7 @@ limitations under the License.
 package system
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -202,7 +203,7 @@ func TestValidatePackageVersion(t *testing.T) {
 				{Name: "bar", VersionRange: ">=3.0"},
 			},
 			errs: []error{
-				fmt.Errorf("package \"bar 2.1.0\" does not meet the spec \"bar (>=3.0)\""),
+				errors.New("package \"bar 2.1.0\" does not meet the spec \"bar (>=3.0)\""),
 			},
 		},
 		{
@@ -211,7 +212,7 @@ func TestValidatePackageVersion(t *testing.T) {
 				{Name: "baz"},
 			},
 			errs: []error{
-				fmt.Errorf("package \"baz\" does not exist"),
+				errors.New("package \"baz\" does not exist"),
 			},
 		},
 		{

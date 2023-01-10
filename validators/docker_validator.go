@@ -88,7 +88,7 @@ func (d *DockerValidator) Validate(spec SysSpec) ([]error, []error) {
 
 func (d *DockerValidator) unmarshalDockerInfo(b []byte, info *dockerInfo) error {
 	if err := json.Unmarshal(b, &info); err != nil {
-		return fmt.Errorf("could not unmarshal the JSON output of 'docker info':\n%q\n err: %w", b, err)
+		return fmt.Errorf("could not unmarshal the JSON output of 'docker info':\n%s\n err: %w", b, err)
 	}
 	return nil
 }

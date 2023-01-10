@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 /*
@@ -69,7 +70,7 @@ func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 	} else {
 		subsystems, err = c.getCgroupV1Subsystems()
 		if err != nil {
-			return nil, []error{fmt.Errorf("failed to get cgroup v1 subsystems: %vs", err)}
+			return nil, []error{fmt.Errorf("failed to get cgroup v1 subsystems: %w", err)}
 		}
 		requiredCgroupSpec = spec.Cgroups
 		optionalCgroupSpec = spec.CgroupsOptional

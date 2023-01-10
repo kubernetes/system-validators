@@ -20,6 +20,7 @@ limitations under the License.
 package system
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -45,7 +46,7 @@ func newPackageManager() (packageManager, error) {
 	if m, ok := newDPKG(); ok {
 		return m, nil
 	}
-	return nil, fmt.Errorf("failed to find package manager")
+	return nil, errors.New("failed to find package manager")
 }
 
 // dpkg implements packageManager. It uses "dpkg-query" to retrieve package
@@ -71,7 +72,7 @@ func (dpkg) getPackageVersion(packageName string) (string, error) {
 	}
 	version := extractUpstreamVersion(string(output))
 	if version == "" {
-		return "", fmt.Errorf("no version information")
+		return "", errors.New("no version information")
 	}
 	return version, nil
 }
@@ -243,10 +244,11 @@ func extractUpstreamVersion(version string) string {
 }
 
 // toSemVerRange converts the input to a semantic version range.
-// E.g., ">=1.0"             -> ">=1.0.x"
-//       ">=1"               -> ">=1.x"
-//       ">=1 <=2.3"         -> ">=1.x <=2.3.x"
-//       ">1 || >3.1.0 !4.2" -> ">1.x || >3.1.0 !4.2.x"
+// E.g.,
+// - ">=1.0"             -> ">=1.0.x"
+// - ">=1"               -> ">=1.x"
+// - ">=1 <=2.3"         -> ">=1.x <=2.3.x"
+// - ">1 || >3.1.0 !4.2" -> ">1.x || >3.1.0 !4.2.x"
 func toSemVerRange(input string) string {
 	var output []string
 	fields := strings.Fields(input)
