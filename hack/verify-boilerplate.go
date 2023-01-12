@@ -107,7 +107,7 @@ func verifyBoilerplate(contents string) error {
 				return fmt.Errorf("copyright line should contain exactly %d words", expectedLen)
 			}
 			if !yearRegexp.MatchString(yearWords[1]) {
-				return fmt.Errorf("cannot parse the year in the copyright line")
+				return errors.New("cannot parse the year in the copyright line")
 			}
 			bpLine = strings.ReplaceAll(bpLine, yearPlaceholder, yearWords[1])
 		}

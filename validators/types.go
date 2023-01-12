@@ -37,8 +37,8 @@ type KernelConfig struct {
 
 // KernelSpec defines the specification for the kernel. Currently, it contains
 // specification for:
-//   * Kernel Version
-//   * Kernel Configuration
+//   - Kernel Version
+//   - Kernel Configuration
 type KernelSpec struct {
 	// Versions define supported kernel version. It is a group of regexps.
 	Versions []string `json:"versions,omitempty"`
