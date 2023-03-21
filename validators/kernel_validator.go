@@ -90,7 +90,7 @@ func (k *KernelValidator) validateKernelVersion(kSpec KernelSpec) error {
 		}
 	}
 	k.Reporter.Report("KERNEL_VERSION", k.kernelRelease, bad)
-	return fmt.Errorf("unsupported kernel release: %s", k.kernelRelease)
+	return fmt.Errorf("kernel release %s is unsupported. %s", k.kernelRelease, kSpec.VersionsNote)
 }
 
 // validateKernelConfig validates the kernel configurations.
