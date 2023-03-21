@@ -67,8 +67,13 @@ func (k *KernelValidator) Validate(spec SysSpec) ([]error, []error) {
 	}
 	k.kernelRelease = release
 	var errs []error
-	if err = k.validateKernelVersion(spec.KernelSpec); err != nil {
+	var warns []error
+	warn, err := k.validateKernelVersion(spec.KernelSpec)
+	if err != nil {
 		errs = append(errs, err)
+	}
+	if warn != nil {
+		warns = append(warns, warn)
 	}
 	// only validate kernel config when necessary (currently no kernel config for windows)
 	if len(spec.KernelSpec.Required) > 0 || len(spec.KernelSpec.Forbidden) > 0 || len(spec.KernelSpec.Optional) > 0 {
@@ -76,21 +81,38 @@ func (k *KernelValidator) Validate(spec SysSpec) ([]error, []error) {
 			errs = append(errs, err)
 		}
 	}
-	return nil, errs
+	return warns, errs
 }
 
 // validateKernelVersion validates the kernel version.
-func (k *KernelValidator) validateKernelVersion(kSpec KernelSpec) error {
-	versionRegexps := kSpec.Versions
-	for _, versionRegexp := range versionRegexps {
+func (k *KernelValidator) validateKernelVersion(kSpec KernelSpec) (error, error) {
+	var warn, err error
+	var matched bool
+	for _, versionRegexp := range kSpec.Versions {
 		r := regexp.MustCompile(versionRegexp)
 		if r.MatchString(k.kernelRelease) {
-			k.Reporter.Report("KERNEL_VERSION", k.kernelRelease, good)
-			return nil
+			matched = true
+			break
 		}
 	}
-	k.Reporter.Report("KERNEL_VERSION", k.kernelRelease, bad)
-	return fmt.Errorf("unsupported kernel release: %s", k.kernelRelease)
+	if !matched {
+		err = fmt.Errorf("unsupported kernel release: %s", k.kernelRelease)
+		k.Reporter.Report("KERNEL_VERSION", k.kernelRelease, good)
+	}
+
+	matched = false
+	for _, versionRegexp := range kSpec.SuggestedVersions {
+		r := regexp.MustCompile(versionRegexp)
+		if r.MatchString(k.kernelRelease) {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		warn = fmt.Errorf("unsuggested kernel release: %s", k.kernelRelease)
+		k.Reporter.Report("KERNEL_VERSION", k.kernelRelease, good)
+	}
+	return warn, err
 }
 
 // validateKernelConfig validates the kernel configurations.
