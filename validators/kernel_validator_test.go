@@ -32,54 +32,68 @@ func TestValidateKernelVersion(t *testing.T) {
 	// This is fine, because the test mainly tests the kernel version validation logic,
 	// not the DefaultSysSpec. The DefaultSysSpec should be tested with node e2e.
 	testRegex := []string{`^3\.[1-9][0-9].*$`, `^([4-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
+	testSuggetRegex := []string{`^([4-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
 	for _, test := range []struct {
 		name    string
 		version string
 		err     bool
+		warn    bool
 	}{
 		{
 			name:    "3.19.9-99-test first version regex matches",
 			version: "3.19.9-99-test",
 			err:     false,
+			warn:    true,
 		},
 		{
 			name:    "4.4.14+ one of version regexes matches",
 			version: "4.4.14+",
 			err:     false,
+			warn:    false,
 		},
 		{
 			name:    "2.0.0 no version regex matches",
 			version: "2.0.0",
 			err:     true,
+			warn:    true,
 		},
 		{
 			name:    "5.0.0 one of version regexes matches",
 			version: "5.0.0",
 			err:     false,
+			warn:    false,
 		},
 		{
 			name:    "10.21.1 one of version regexes matches",
 			version: "10.21.1",
 			err:     false,
+			warn:    false,
 		},
 		{
 			name:    "99.12.12 one of version regexes matches",
 			version: "99.12.12",
 			err:     false,
+			warn:    false,
 		},
 		{
 			name:    "3.9.0 no version regex matches",
 			version: "3.9.0",
 			err:     true,
+			warn:    true,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			v.kernelRelease = test.version
-			err := v.validateKernelVersion(KernelSpec{Versions: testRegex})
+			warn, err := v.validateKernelVersion(KernelSpec{Versions: testRegex, SuggestedVersions: testSuggetRegex})
 			if !test.err {
 				assert.Nil(t, err, "Expect error not to occur with kernel version %q", test.version)
 			} else {
 				assert.NotNil(t, err, "Expect error to occur with kenrel version %q", test.version)
+			}
+			if !test.warn {
+				assert.Nil(t, warn, "Expect warn not to occur with kernel version %q", test.version)
+			} else {
+				assert.NotNil(t, warn, "Expect warn to occur with kenrel version %q", test.version)
 			}
 		})
 	}
