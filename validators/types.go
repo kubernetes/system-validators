@@ -42,8 +42,10 @@ type KernelConfig struct {
 type KernelSpec struct {
 	// Versions define supported kernel version. It is a group of regexps.
 	Versions []string `json:"versions,omitempty"`
-	// SuggestedVersions define suggested kernel version. It is a group of regexps.
-	SuggestedVersions []string `json:"versions,omitempty"`
+	// RecommendedVersions define recommended kernel versions. It is a group of regexps.
+	RecommendedVersions []string `json:"recommendedVersions,omitempty"`
+	// RecommendedNote provides a prompt message for user if RecommendedVersions do not match.
+	RecommendedNote string `json:"recommendedNote,omitempty"`
 	// Required contains all kernel configurations required to be enabled
 	// (built in or as module).
 	Required []KernelConfig `json:"required,omitempty"`

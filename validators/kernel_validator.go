@@ -101,7 +101,7 @@ func (k *KernelValidator) validateKernelVersion(kSpec KernelSpec) (error, error)
 	}
 
 	matched = false
-	for _, versionRegexp := range kSpec.SuggestedVersions {
+	for _, versionRegexp := range kSpec.RecommendedVersions {
 		r := regexp.MustCompile(versionRegexp)
 		if r.MatchString(k.kernelRelease) {
 			matched = true
@@ -109,7 +109,7 @@ func (k *KernelValidator) validateKernelVersion(kSpec KernelSpec) (error, error)
 		}
 	}
 	if !matched {
-		warn = fmt.Errorf("unsuggested kernel release: %s", k.kernelRelease)
+		warn = fmt.Errorf("kernel release %s is not recommended, and %s", k.kernelRelease, kSpec.RecommendedNote)
 		k.Reporter.Report("KERNEL_VERSION", k.kernelRelease, good)
 	}
 	return warn, err

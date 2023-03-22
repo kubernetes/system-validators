@@ -32,7 +32,7 @@ func TestValidateKernelVersion(t *testing.T) {
 	// This is fine, because the test mainly tests the kernel version validation logic,
 	// not the DefaultSysSpec. The DefaultSysSpec should be tested with node e2e.
 	testRegex := []string{`^3\.[1-9][0-9].*$`, `^([4-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
-	testSuggetRegex := []string{`^([4-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
+	testRecommendedRegex := []string{`^([4-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
 	for _, test := range []struct {
 		name    string
 		version string
@@ -84,16 +84,16 @@ func TestValidateKernelVersion(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			v.kernelRelease = test.version
-			warn, err := v.validateKernelVersion(KernelSpec{Versions: testRegex, SuggestedVersions: testSuggetRegex})
+			warn, err := v.validateKernelVersion(KernelSpec{Versions: testRegex, RecommendedVersions: testRecommendedRegex})
 			if !test.err {
 				assert.Nil(t, err, "Expect error not to occur with kernel version %q", test.version)
 			} else {
-				assert.NotNil(t, err, "Expect error to occur with kenrel version %q", test.version)
+				assert.NotNil(t, err, "Expect error to occur with kernel version %q", test.version)
 			}
 			if !test.warn {
 				assert.Nil(t, warn, "Expect warn not to occur with kernel version %q", test.version)
 			} else {
-				assert.NotNil(t, warn, "Expect warn to occur with kenrel version %q", test.version)
+				assert.NotNil(t, warn, "Expect warn to occur with kernel version %q", test.version)
 			}
 		})
 	}
@@ -203,7 +203,7 @@ func TestValidateCachedKernelConfig(t *testing.T) {
 			if !test.err {
 				assert.Nil(t, err, "Expect error not to occur with kernel config %q", test.config)
 			} else {
-				assert.NotNil(t, err, "Expect error to occur with kenrel config %q", test.config)
+				assert.NotNil(t, err, "Expect error to occur with kernel config %q", test.config)
 			}
 		})
 	}
