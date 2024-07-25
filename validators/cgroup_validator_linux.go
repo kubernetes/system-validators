@@ -21,6 +21,7 @@ package system
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -63,14 +64,15 @@ func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 	if st.Type == unix.CGROUP2_SUPER_MAGIC {
 		subsystems, err = c.getCgroupV2Subsystems()
 		if err != nil {
-			return nil, []error{fmt.Errorf("failed to get cgroup v2 subsystems: %w", err)}
+			return nil, []error{fmt.Errorf("failed to get cgroups v2 subsystems: %w", err)}
 		}
 		requiredCgroupSpec = spec.CgroupsV2
 		optionalCgroupSpec = spec.CgroupsV2Optional
 	} else {
+		warns = append(warns, errors.New("cgroups v1 support is in maintenance mode, please migrate to cgroups v2"))
 		subsystems, err = c.getCgroupV1Subsystems()
 		if err != nil {
-			return nil, []error{fmt.Errorf("failed to get cgroup v1 subsystems: %w", err)}
+			return nil, []error{fmt.Errorf("failed to get cgroups v1 subsystems: %w", err)}
 		}
 		requiredCgroupSpec = spec.Cgroups
 		optionalCgroupSpec = spec.CgroupsOptional
@@ -80,7 +82,7 @@ func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 		errs = []error{fmt.Errorf("missing required cgroups: %s", strings.Join(missingRequired, " "))}
 	}
 	if missingOptional := c.validateCgroupSubsystems(optionalCgroupSpec, subsystems, false); len(missingOptional) != 0 {
-		warns = []error{fmt.Errorf("missing optional cgroups: %s", strings.Join(missingOptional, " "))}
+		warns = append(warns, fmt.Errorf("missing optional cgroups: %s", strings.Join(missingOptional, " ")))
 	}
 	return
 }

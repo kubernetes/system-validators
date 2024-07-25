@@ -64,13 +64,13 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 		},
 		"missing required cgroup subsystem when pseudo hardcoded subsystems are set": {
 			cgroupSpec: []string{"system1", "devices", "freezer"},
-			subsystems: append(pseudoSubsystems),
+			subsystems: pseudoSubsystems,
 			required:   true,
 			missing:    []string{"system1"},
 		},
 		"missing optional cgroup subsystem when pseudo hardcoded subsystems are set": {
 			cgroupSpec: []string{"system1", "devices", "freezer"},
-			subsystems: append(pseudoSubsystems),
+			subsystems: pseudoSubsystems,
 			required:   false,
 			missing:    []string{"system1"},
 		},
