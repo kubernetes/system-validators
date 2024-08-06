@@ -42,6 +42,8 @@ type KernelConfig struct {
 type KernelSpec struct {
 	// Versions define supported kernel version. It is a group of regexps.
 	Versions []string `json:"versions,omitempty"`
+	// VersionsNote provides additional information if Versions do not match.
+	VersionsNote string `json:"versionsNote,omitempty"`
 	// Required contains all kernel configurations required to be enabled
 	// (built in or as module).
 	Required []KernelConfig `json:"required,omitempty"`
