@@ -31,7 +31,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var _ Validator = &CgroupsValidator{}
+var (
+	_                 Validator = &CgroupsValidator{}
+	unifiedMountpoint           = getUnifiedMountpoint()
+)
 
 // CgroupsValidator validates cgroup configuration.
 type CgroupsValidator struct {
@@ -44,9 +47,29 @@ func (c *CgroupsValidator) Name() string {
 }
 
 const (
-	cgroupsConfigPrefix = "CGROUPS_"
-	unifiedMountpoint   = "/sys/fs/cgroup"
+	cgroupsConfigPrefix      = "CGROUPS_"
+	defaultUnifiedMountpoint = "/sys/fs/cgroup"
+	mountsFilePath           = "/proc/mounts"
 )
+
+// getUnifiedMountpoint will check /proc/mounts and return the cgroup dir
+func getUnifiedMountpoint() string {
+	f, err := os.Open(mountsFilePath)
+	if err != nil {
+		fmt.Printf("error checking %q: %v\n", mountsFilePath, err)
+	} else {
+		defer f.Close()
+		scanner := bufio.NewScanner(f)
+		for scanner.Scan() {
+			// example fields: `cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0`
+			fields := strings.Split(scanner.Text(), " ")
+			if len(fields) >= 3 && (fields[2] == "cgroup2" || fields[2] == "cgroup") {
+				return fields[1]
+			}
+		}
+	}
+	return defaultUnifiedMountpoint
+}
 
 // Validate is part of the system.Validator interface.
 func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
@@ -142,15 +165,39 @@ func (c *CgroupsValidator) getCgroupV2Subsystems() ([]string, error) {
 	// Some controllers are implicitly enabled by the kernel.
 	// Those controllers do not appear in /sys/fs/cgroup/cgroup.controllers.
 	// https://github.com/torvalds/linux/blob/v5.3/kernel/cgroup/cgroup.c#L433-L434
-	// We assume these are always available, as it is hard to detect availability.
-	// So, we hardcode the following as "pseudo" controllers.
+	// For freezer, we use checkCgroupV2Freeze() to check.
+	// For others, we assume these are always available, as it is hard to detect availability.
+	// We hardcode the following as initial controllers.
 	// - devices: implemented in kernel 4.15
-	// - freezer: implemented in kernel 5.2
-	pseudo := []string{"devices", "freezer"}
+	subsystems := []string{"devices"}
+	if checkCgroupV2Freeze() {
+		subsystems = append(subsystems, "freezer")
+	}
 	data, err := ioutil.ReadFile(filepath.Join(unifiedMountpoint, "cgroup.controllers"))
 	if err != nil {
 		return nil, err
 	}
-	subsystems := append(pseudo, strings.Fields(string(data))...)
+	subsystems = append(subsystems, strings.Fields(string(data))...)
 	return subsystems, nil
+}
+
+// For freezer which is implemented in kernel 5.2, we can check the existence of `cgroup.freeze`.
+func checkCgroupV2Freeze() bool {
+	tmpDir, err := os.MkdirTemp(unifiedMountpoint, "freezer-test")
+	if err != nil {
+		fmt.Printf("error mkdir under %q: %v\n", unifiedMountpoint, err)
+		return false
+	}
+	defer func() {
+		err := os.RemoveAll(tmpDir)
+		if err != nil {
+			fmt.Printf("error remove dir %q: %v\n", tmpDir, err)
+		}
+	}()
+	_, err = os.Stat(filepath.Join(tmpDir, "/cgroup.freeze"))
+	if err == nil {
+		return true
+	}
+	fmt.Printf("no cgroup.freeze under %q: %v\n", tmpDir, err)
+	return false
 }
