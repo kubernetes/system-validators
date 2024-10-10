@@ -57,15 +57,16 @@ func getUnifiedMountpoint() string {
 	f, err := os.Open(mountsFilePath)
 	if err != nil {
 		fmt.Printf("error checking %q: %v\n", mountsFilePath, err)
-	} else {
-		defer f.Close()
-		scanner := bufio.NewScanner(f)
-		for scanner.Scan() {
-			// example fields: `cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0`
-			fields := strings.Split(scanner.Text(), " ")
-			if len(fields) >= 3 && (fields[2] == "cgroup2" || fields[2] == "cgroup") {
-				return fields[1]
-			}
+		return defaultUnifiedMountpoint
+	}
+
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		// example fields: `cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0`
+		fields := strings.Split(scanner.Text(), " ")
+		if len(fields) >= 3 && (fields[2] == "cgroup2" || fields[2] == "cgroup") {
+			return fields[1]
 		}
 	}
 	return defaultUnifiedMountpoint
@@ -170,7 +171,11 @@ func (c *CgroupsValidator) getCgroupV2Subsystems() ([]string, error) {
 	// We hardcode the following as initial controllers.
 	// - devices: implemented in kernel 4.15
 	subsystems := []string{"devices"}
-	if checkCgroupV2Freeze() {
+	freezeSupported, err := checkCgroupV2Freeze()
+	if err != nil {
+		fmt.Printf("error checking cgroups v2 freeze: %v\n", err)
+	}
+	if freezeSupported {
 		subsystems = append(subsystems, "freezer")
 	}
 	data, err := ioutil.ReadFile(filepath.Join(unifiedMountpoint, "cgroup.controllers"))
@@ -181,23 +186,21 @@ func (c *CgroupsValidator) getCgroupV2Subsystems() ([]string, error) {
 	return subsystems, nil
 }
 
-// For freezer which is implemented in kernel 5.2, we can check the existence of `cgroup.freeze`.
-func checkCgroupV2Freeze() bool {
+// To check if the freezer controller is enabled in Linux kernels 5.2, we can check the existence of cgroup.freeze.
+func checkCgroupV2Freeze() (bool, error) {
 	tmpDir, err := os.MkdirTemp(unifiedMountpoint, "freezer-test")
 	if err != nil {
-		fmt.Printf("error mkdir under %q: %v\n", unifiedMountpoint, err)
-		return false
+		return false, err
 	}
 	defer func() {
 		err := os.RemoveAll(tmpDir)
 		if err != nil {
-			fmt.Printf("error remove dir %q: %v\n", tmpDir, err)
+			fmt.Printf("error removing directory %q: %v\n", tmpDir, err)
 		}
 	}()
-	_, err = os.Stat(filepath.Join(tmpDir, "/cgroup.freeze"))
+	_, err = os.Stat(filepath.Join(tmpDir, "cgroup.freeze"))
 	if err == nil {
-		return true
+		return true, nil
 	}
-	fmt.Printf("no cgroup.freeze under %q: %v\n", tmpDir, err)
-	return false
+	return false, err
 }
