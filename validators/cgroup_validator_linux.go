@@ -62,12 +62,29 @@ func getUnifiedMountpoint() string {
 
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
+	var cgroupv1MountPoint string
 	for scanner.Scan() {
 		// example fields: `cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0`
-		fields := strings.Split(scanner.Text(), " ")
-		if len(fields) >= 3 && (fields[2] == "cgroup2" || fields[2] == "cgroup") {
-			return fields[1]
+		fields := strings.Fields(scanner.Text())
+		if len(fields) >= 3 {
+			switch fields[2] {
+			case "cgroup2":
+				// return the first cgroup v2 mount point directly
+				return fields[1]
+			case "cgroup":
+				// set the first cgroup v1 mount point only,
+				// and continue the loop to find if there is a cgroup v2 mount point
+				if len(cgroupv1MountPoint) == 0 {
+					cgroupv1MountPoint = fields[1]
+				}
+			default:
+				continue
+			}
 		}
+	}
+	// return cgroup v1 mount point if no cgroup v2 mount point is found
+	if len(cgroupv1MountPoint) != 0 {
+		return cgroupv1MountPoint
 	}
 	return defaultUnifiedMountpoint
 }
@@ -199,8 +216,10 @@ func checkCgroupV2Freeze() (bool, error) {
 		}
 	}()
 	_, err = os.Stat(filepath.Join(tmpDir, "cgroup.freeze"))
-	if err == nil {
-		return true, nil
+	if os.IsNotExist(err) {
+		return false, nil
+	} else if err != nil {
+		fmt.Printf("error stat cgroup.freeze file under %q: %v\n", tmpDir, err)
 	}
-	return false, err
+	return true, nil
 }
