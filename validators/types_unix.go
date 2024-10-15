@@ -72,7 +72,7 @@ var DefaultSysSpec = SysSpec{
 		// and therefore lacks corresponding hugetlb cgroup
 		"hugetlb",
 		// The blkio cgroup is optional since some kernels are compiled without support for block I/O throttling.
-		// Containerd and cri-o will use blkio to track disk I/O and throttling in both cgroup v1 and v2.
+		// Containerd and cri-o will use blkio to track disk I/O and throttling in both cgroups v1 and v2.
 		"blkio",
 	},
 	CgroupsV2: []string{"cpu", "cpuset", "devices", "freezer", "memory", "pids"},
