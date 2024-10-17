@@ -30,7 +30,7 @@ Learn how to engage with the Kubernetes community on the [community page](http:/
 You can reach the maintainers of this project at:
 
 - [Slack](https://kubernetes.slack.com/messages/sig-cluster-lifecycle)
-- [Mailing List](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
+- [Mailing List](https://groups.google.com/a/kubernetes.io/g/sig-cluster-lifecycle)
 
 ### Code of conduct
 
