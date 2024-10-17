@@ -40,11 +40,12 @@ var DefaultSysSpec = SysSpec{
 			{Name: "IPC_NS"},
 			{Name: "UTS_NS"},
 			{Name: "CGROUPS"},
-			{Name: "CGROUP_CPUACCT"},
+			{Name: "CGROUP_BPF"},     // cgroups v2
+			{Name: "CGROUP_CPUACCT"}, // cgroups v1 cpuacct
 			{Name: "CGROUP_DEVICE"},
-			{Name: "CGROUP_FREEZER"},
+			{Name: "CGROUP_FREEZER"}, // cgroups v1 freezer
 			{Name: "CGROUP_PIDS"},
-			{Name: "CGROUP_SCHED"},
+			{Name: "CGROUP_SCHED"}, // cgroups v1 & v2 cpu
 			{Name: "CPUSETS"},
 			{Name: "MEMCG"},
 			{Name: "INET"},
@@ -71,7 +72,7 @@ var DefaultSysSpec = SysSpec{
 		// and therefore lacks corresponding hugetlb cgroup
 		"hugetlb",
 		// The blkio cgroup is optional since some kernels are compiled without support for block I/O throttling.
-		// Containerd and cri-o will use blkio to track disk I/O and throttling in both cgroup v1 and v2.
+		// Containerd and cri-o will use blkio to track disk I/O and throttling in both cgroups v1 and v2.
 		"blkio",
 	},
 	CgroupsV2: []string{"cpu", "cpuset", "devices", "freezer", "memory", "pids"},

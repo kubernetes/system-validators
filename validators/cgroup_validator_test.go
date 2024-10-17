@@ -20,13 +20,14 @@ limitations under the License.
 package system
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateCgroupSubsystem(t *testing.T) {
-	// hardcoded cgroup v2 subsystems
+	// hardcoded cgroups v2 subsystems
 	pseudoSubsystems := []string{"devices", "freezer"}
 
 	v := &CgroupsValidator{
@@ -90,6 +91,76 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			missing := v.validateCgroupSubsystems(test.cgroupSpec, test.subsystems, test.required)
 			assert.Equal(t, test.missing, missing, "%q: Expect error not to occur with cgroup", desc)
+		})
+	}
+}
+
+func TestGetUnifiedMountpoint(t *testing.T) {
+	tests := map[string]struct {
+		mountsFileContent string
+		expectedErr       bool
+		expectedPath      string
+	}{
+		"cgroups v2": {
+			mountsFileContent: "cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
+			expectedErr:       false,
+			expectedPath:      "/sys/fs/cgroup",
+		},
+		"cgroups v1": {
+			mountsFileContent: "cgroup /sys/fs/cgroup cgroup rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
+			expectedErr:       false,
+			expectedPath:      "/sys/fs/cgroup",
+		},
+		"empty file": {
+			mountsFileContent: "",
+			expectedErr:       true,
+			expectedPath:      "",
+		},
+		"no cgroup mounts": {
+			mountsFileContent: `proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0
+sysfs /sys sysfs rw,seclabel,nosuid,nodev,noexec,relatime 0 0`,
+			expectedErr:  true,
+			expectedPath: "",
+		},
+		"multiple cgroups v1 and v2": {
+			mountsFileContent: `cgroup /sys/fs/cgroup/cpuset cgroup rw,nosuid,nodev,noexec,relatime,cpuset
+cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory
+cgroup2 /sys/fs/cgroup/unified cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime`,
+			expectedErr:  false,
+			expectedPath: "/sys/fs/cgroup/unified",
+		},
+		"cgroups v1 only with multiple subsystems": {
+			mountsFileContent: `cgroup /sys/fs/cgroup/cpuset cgroup rw,nosuid,nodev,noexec,relatime,cpuset
+cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory`,
+			expectedErr:  false,
+			expectedPath: "/sys/fs/cgroup/cpuset", // First valid cgroups v1 path
+		},
+		"no valid cgroup": {
+			mountsFileContent: "proc /proc proc rw,nosuid,nodev,noexec,relatime 0 0\nsysfs /sys sysfs rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
+			expectedErr:       true,
+			expectedPath:      "",
+		},
+	}
+
+	for desc, test := range tests {
+		t.Run(desc, func(t *testing.T) {
+			tmpFile, err := os.CreateTemp("", "mounts")
+			assert.NoError(t, err, "Unexpected error creating temp file")
+			defer os.Remove(tmpFile.Name())
+
+			_, err = tmpFile.Write([]byte(test.mountsFileContent))
+			assert.NoError(t, err, "Unexpected error writing to temp file")
+			tmpFile.Close()
+
+			path, err := getUnifiedMountpoint(tmpFile.Name())
+
+			if test.expectedErr {
+				assert.Error(t, err, "Expected error but got none")
+			} else {
+				assert.NoError(t, err, "Did not expect error but got one: %s", err)
+			}
+
+			assert.Equal(t, test.expectedPath, path, "Expected cgroup path mismatch")
 		})
 	}
 }
