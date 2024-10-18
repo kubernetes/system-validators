@@ -97,14 +97,16 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 
 func TestGetUnifiedMountpoint(t *testing.T) {
 	tests := map[string]struct {
-		mountsFileContent string
-		expectedErr       bool
-		expectedPath      string
+		mountsFileContent   string
+		expectedErr         bool
+		expectedPath        string
+		expectedIsCgroupsV2 bool
 	}{
 		"cgroups v2": {
-			mountsFileContent: "cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
-			expectedErr:       false,
-			expectedPath:      "/sys/fs/cgroup",
+			mountsFileContent:   "cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
+			expectedErr:         false,
+			expectedPath:        "/sys/fs/cgroup",
+			expectedIsCgroupsV2: true,
 		},
 		"cgroups v1": {
 			mountsFileContent: "cgroup /sys/fs/cgroup cgroup rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
@@ -126,8 +128,9 @@ sysfs /sys sysfs rw,seclabel,nosuid,nodev,noexec,relatime 0 0`,
 			mountsFileContent: `cgroup /sys/fs/cgroup/cpuset cgroup rw,nosuid,nodev,noexec,relatime,cpuset
 cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory
 cgroup2 /sys/fs/cgroup/unified cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime`,
-			expectedErr:  false,
-			expectedPath: "/sys/fs/cgroup/unified",
+			expectedErr:         false,
+			expectedPath:        "/sys/fs/cgroup/unified",
+			expectedIsCgroupsV2: true,
 		},
 		"cgroups v1 only with multiple subsystems": {
 			mountsFileContent: `cgroup /sys/fs/cgroup/cpuset cgroup rw,nosuid,nodev,noexec,relatime,cpuset
@@ -152,7 +155,7 @@ cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory`,
 			assert.NoError(t, err, "Unexpected error writing to temp file")
 			tmpFile.Close()
 
-			path, err := getUnifiedMountpoint(tmpFile.Name())
+			path, isCgroupsV2, err := getUnifiedMountpoint(tmpFile.Name())
 
 			if test.expectedErr {
 				assert.Error(t, err, "Expected error but got none")
@@ -161,6 +164,7 @@ cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory`,
 			}
 
 			assert.Equal(t, test.expectedPath, path, "Expected cgroup path mismatch")
+			assert.Equal(t, test.expectedIsCgroupsV2, isCgroupsV2, "Expected cgroup version mismatch")
 		})
 	}
 }
