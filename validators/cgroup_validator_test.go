@@ -21,6 +21,7 @@ package system
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -96,11 +97,17 @@ func TestValidateCgroupSubsystem(t *testing.T) {
 }
 
 func TestGetUnifiedMountpoint(t *testing.T) {
+	c, err := os.Open(filepath.Join(defaultUnifiedMountPoint, "cgroup.controllers"))
+	if err == nil {
+		defer c.Close()
+	}
 	tests := map[string]struct {
 		mountsFileContent   string
 		expectedErr         bool
 		expectedPath        string
 		expectedIsCgroupsV2 bool
+		// this may depends on checking `/sys/fs/cgroup/cgroup.controllers`
+		skipIsCgroupsV2Check bool
 	}{
 		"cgroups v2": {
 			mountsFileContent:   "cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0",
@@ -143,6 +150,25 @@ cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory`,
 			expectedErr:       true,
 			expectedPath:      "",
 		},
+		"cgroups using tmpfs, v1 and v2": {
+			mountsFileContent: `tmpfs /run tmpfs rw,nosuid,nodev,size=803108k,nr_inodes=819200,mode=755 0 0
+tmpfs /sys/fs/cgroup tmpfs ro,nosuid,nodev,noexec,size=4096k,nr_inodes=1024,mode=755 0 0
+cgroup2 /sys/fs/cgroup/unified cgroup2 rw,nosuid,nodev,noexec,relatime,nsdelegate 0 0
+cgroup /sys/fs/cgroup/systemd cgroup rw,nosuid,nodev,noexec,relatime,xattr,name=systemd 0 0`,
+			expectedErr:          false,
+			expectedPath:         "/sys/fs/cgroup",
+			skipIsCgroupsV2Check: true,
+		},
+		"cgroups using tmpfs, v1": {
+			mountsFileContent: `tmpfs /sys/fs/cgroup tmpfs ro,seclabel,nosuid,nodev,noexec,mode=755 0 0
+cgroup /sys/fs/cgroup/systemd cgroup rw,seclabel,nosuid,nodev,noexec,relatime,xattr,release_agent=/usr/lib/systemd/systemd-cgroups-agent,name=systemd 0 0
+cgroup /sys/fs/cgroup/net_cls,net_prio cgroup rw,seclabel,nosuid,nodev,noexec,relatime,net_cls,net_prio 0 0
+cgroup /sys/fs/cgroup/blkio cgroup rw,seclabel,nosuid,nodev,noexec,relatime,blkio 0 0
+cgroup /sys/fs/cgroup/memory cgroup rw,seclabel,nosuid,nodev,noexec,relatime,memory 0 0`,
+			expectedErr:          false,
+			expectedPath:         "/sys/fs/cgroup",
+			skipIsCgroupsV2Check: true,
+		},
 	}
 
 	for desc, test := range tests {
@@ -164,7 +190,9 @@ cgroup /sys/fs/cgroup/memory cgroup rw,nosuid,nodev,noexec,relatime,memory`,
 			}
 
 			assert.Equal(t, test.expectedPath, path, "Expected cgroup path mismatch")
-			assert.Equal(t, test.expectedIsCgroupsV2, isCgroupsV2, "Expected cgroup version mismatch")
+			if !test.skipIsCgroupsV2Check {
+				assert.Equal(t, test.expectedIsCgroupsV2, isCgroupsV2, "Expected cgroup version mismatch")
+			}
 		})
 	}
 }
