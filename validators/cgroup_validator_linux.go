@@ -68,11 +68,9 @@ func getUnifiedMountpoint(path string) (string, bool, error) {
 			// If default unified mount point is available, return it directly.
 			if fields[1] == defaultUnifiedMountPoint {
 				if fields[2] == "tmpfs" {
-					c, err := os.Open(filepath.Join(defaultUnifiedMountPoint, "cgroup.controllers"))
-					if err == nil {
-						defer c.Close()
-					}
-					return defaultUnifiedMountPoint, !os.IsNotExist(err), nil
+					// if `/sys/fs/cgroup/memory` is a dir, this means it uses cgroups v1
+					info, err := os.Stat(filepath.Join(defaultUnifiedMountPoint, "memory"))
+					return defaultUnifiedMountPoint, os.IsNotExist(err) || !info.IsDir(), nil
 				}
 				return defaultUnifiedMountPoint, fields[2] == "cgroup2", nil
 			}

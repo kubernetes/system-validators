@@ -106,7 +106,8 @@ func TestGetUnifiedMountpoint(t *testing.T) {
 		expectedErr         bool
 		expectedPath        string
 		expectedIsCgroupsV2 bool
-		// this may depends on checking `/sys/fs/cgroup/cgroup.controllers`
+		// when /sys/fs/cgroup is mounted as tmpfs,
+		// the cgroup version check depends on checking local dir: `/sys/fs/cgroup/memory`
 		skipIsCgroupsV2Check bool
 	}{
 		"cgroups v2": {
