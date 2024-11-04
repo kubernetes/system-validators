@@ -27,8 +27,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"golang.org/x/sys/unix"
 )
 
 var _ Validator = &CgroupsValidator{}
@@ -44,16 +42,17 @@ func (c *CgroupsValidator) Name() string {
 }
 
 const (
-	cgroupsConfigPrefix = "CGROUPS_"
-	mountsFilePath      = "/proc/mounts"
+	cgroupsConfigPrefix      = "CGROUPS_"
+	mountsFilePath           = "/proc/mounts"
+	defaultUnifiedMountPoint = "/sys/fs/cgroup"
 )
 
 // getUnifiedMountpoint checks if the default mount point is available.
 // If not, it parses the mounts file to find a valid cgroup mount point.
-func getUnifiedMountpoint(path string) (string, error) {
+func getUnifiedMountpoint(path string) (string, bool, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -66,10 +65,19 @@ func getUnifiedMountpoint(path string) (string, error) {
 		// Example fields: `cgroup2 /sys/fs/cgroup cgroup2 rw,seclabel,nosuid,nodev,noexec,relatime 0 0`.
 		fields := strings.Fields(line)
 		if len(fields) >= 3 {
+			// If default unified mount point is available, return it directly.
+			if fields[1] == defaultUnifiedMountPoint {
+				if fields[2] == "tmpfs" {
+					// if `/sys/fs/cgroup/memory` is a dir, this means it uses cgroups v1
+					info, err := os.Stat(filepath.Join(defaultUnifiedMountPoint, "memory"))
+					return defaultUnifiedMountPoint, os.IsNotExist(err) || !info.IsDir(), nil
+				}
+				return defaultUnifiedMountPoint, fields[2] == "cgroup2", nil
+			}
 			switch fields[2] {
 			case "cgroup2":
 				// Return the first cgroups v2 mount point directly.
-				return fields[1], nil
+				return fields[1], true, nil
 			case "cgroup":
 				// Set the first cgroups v1 mount point only,
 				// and continue the loop to find if there is a cgroups v2 mount point.
@@ -81,29 +89,22 @@ func getUnifiedMountpoint(path string) (string, error) {
 	}
 	// Return cgroups v1 mount point if no cgroups v2 mount point is found.
 	if len(cgroupV1MountPoint) != 0 {
-		return cgroupV1MountPoint, nil
+		return cgroupV1MountPoint, false, nil
 	}
-	return "", fmt.Errorf("cannot get a cgroupfs mount point from %q", path)
+	return "", false, fmt.Errorf("cannot get a cgroupfs mount point from %q", path)
 }
 
 // Validate is part of the system.Validator interface.
 func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
-	// Get the subsystems from /sys/fs/cgroup/cgroup.controllers when cgroups v2 is used.
-	// /proc/cgroups is meaningless for v2
-	// https://github.com/torvalds/linux/blob/v5.3/Documentation/admin-guide/cgroup-v2.rst#deprecated-v1-core-features
-	var st unix.Statfs_t
-	unifiedMountpoint, err := getUnifiedMountpoint(mountsFilePath)
+	unifiedMountpoint, isCgroupsV2, err := getUnifiedMountpoint(mountsFilePath)
 	if err != nil {
 		return nil, []error{fmt.Errorf("cannot get a cgroup mount point: %w", err)}
-	}
-	if err := unix.Statfs(unifiedMountpoint, &st); err != nil {
-		return nil, []error{fmt.Errorf("cannot statfs the cgroupv2 root: %w", err)}
 	}
 	var requiredCgroupSpec []string
 	var optionalCgroupSpec []string
 	var subsystems []string
 	var warn error
-	if st.Type == unix.CGROUP2_SUPER_MAGIC {
+	if isCgroupsV2 {
 		subsystems, err, warn = c.getCgroupV2Subsystems(unifiedMountpoint)
 		if err != nil {
 			return nil, []error{fmt.Errorf("failed to get cgroups v2 subsystems: %w", err)}
