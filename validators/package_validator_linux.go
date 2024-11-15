@@ -22,7 +22,7 @@ package system
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -171,7 +171,7 @@ func getKernelRelease() (string, error) {
 // getOSDistro returns the OS distro of the local machine.
 func getOSDistro() (string, error) {
 	f := "/etc/lsb-release"
-	b, err := ioutil.ReadFile(f)
+	b, err := os.ReadFile(f)
 	if err != nil {
 		return "", fmt.Errorf("failed to read %q: %w", f, err)
 	}
