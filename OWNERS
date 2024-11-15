@@ -1,17 +1,18 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-- fabriziopandini
 - neolit123
 - SataQiu
+- pacoxu
 reviewers:
 - KentaTada
-- odinuge
+- carlory
 emeritus_approvers:
 - luxas
 - timothysc
 - rosti
 - ereslibre
+- fabriziopandini
 labels:
 - sig/cluster-lifecycle
 - sig/node
