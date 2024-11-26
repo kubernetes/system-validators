@@ -20,8 +20,10 @@ limitations under the License.
 package system
 
 import (
-	"os/exec"
+	"fmt"
 	"strings"
+
+	"golang.org/x/sys/unix"
 )
 
 // DefaultSysSpec is the default SysSpec for Linux
@@ -96,9 +98,15 @@ var _ KernelValidatorHelper = &KernelValidatorHelperImpl{}
 
 // GetKernelReleaseVersion returns the kernel release version (ex. 4.4.0-96-generic) as a string
 func (o *KernelValidatorHelperImpl) GetKernelReleaseVersion() (string, error) {
-	releaseVersion, err := exec.Command("uname", "-r").CombinedOutput()
+	return getKernelRelease()
+}
+
+// getKernelRelease returns the kernel release of the local machine.
+func getKernelRelease() (string, error) {
+	var utsname unix.Utsname
+	err := unix.Uname(&utsname)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get kernel release: %w", err)
 	}
-	return strings.TrimSpace(string(releaseVersion)), nil
+	return strings.TrimSpace(unix.ByteSliceToString(utsname.Release[:])), nil
 }
