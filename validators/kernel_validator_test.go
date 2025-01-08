@@ -31,12 +31,22 @@ func TestValidateKernelVersion(t *testing.T) {
 	// they may be different.
 	// This is fine, because the test mainly tests the kernel version validation logic,
 	// not the DefaultSysSpec. The DefaultSysSpec should be tested with node e2e.
-	testRegex := []string{`^4\.19.*$`, `^4\.[2-9][0-9].*$`, `^([5-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
+	testRegex := []string{`^5\.4.*$`, `^5\.10.*$`, `^5\.15.*$`, `^([6-9]|[1-9][0-9]+)\.([0-9]+)\.([0-9]+).*$`}
 	for _, test := range []struct {
 		name    string
 		version string
 		err     bool
 	}{
+		{
+			name:    "2.0.0 no version regex matches",
+			version: "2.0.0",
+			err:     true,
+		},
+		{
+			name:    "3.9.0 no version regex matches",
+			version: "3.9.0",
+			err:     true,
+		},
 		{
 			name:    "3.19.9-99-test no version regex matches",
 			version: "3.19.9-99-test",
@@ -48,38 +58,53 @@ func TestValidateKernelVersion(t *testing.T) {
 			err:     true,
 		},
 		{
-			name:    "4.7.1 no version regex matches",
-			version: "4.7.1",
-			err:     true,
-		},
-		{
 			name:    "4.17.3 no version regex matches",
 			version: "4.17.3",
 			err:     true,
 		},
 		{
-			name:    "4.19.3-99-test matches",
+			name:    "4.19.3-99-test no version regex matches",
 			version: "4.19.3-99-test",
-			err:     false,
-		},
-		{
-			name:    "4.20.3+ matches",
-			version: "4.20.3+",
-			err:     false,
-		},
-		{
-			name:    "5.12.3 matches",
-			version: "5.12.3",
-			err:     false,
-		},
-		{
-			name:    "2.0.0 no version regex matches",
-			version: "2.0.0",
 			err:     true,
 		},
 		{
-			name:    "5.0.0 one of version regexes matches",
+			name:    "4.20.3+ no version regex matches",
+			version: "4.20.3+",
+			err:     true,
+		},
+		{
+			name:    "5.0.0 no version regexes matches",
 			version: "5.0.0",
+			err:     true,
+		},
+		{
+			name:    "5.4.288 matches",
+			version: "5.4.288",
+			err:     false,
+		},
+		{
+			name:    "5.10.232 matches",
+			version: "5.10.232",
+			err:     false,
+		},
+		{
+			name:    "5.12.3 no version regex matches(no lts version)",
+			version: "5.12.3",
+			err:     true,
+		},
+		{
+			name:    "5.15.175 matches",
+			version: "5.15.175",
+			err:     false,
+		},
+		{
+			name:    "5.16.3 no version regex matches(no such version)",
+			version: "5.16.3",
+			err:     true,
+		},
+		{
+			name:    "6.12.8 matches",
+			version: "6.12.8",
 			err:     false,
 		},
 		{
@@ -91,11 +116,6 @@ func TestValidateKernelVersion(t *testing.T) {
 			name:    "99.12.12 one of version regexes matches",
 			version: "99.12.12",
 			err:     false,
-		},
-		{
-			name:    "3.9.0 no version regex matches",
-			version: "3.9.0",
-			err:     true,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
