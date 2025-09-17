@@ -72,6 +72,12 @@ var DefaultSysSpec = SysSpec{
 			{Name: "SECCOMP", Description: "Required for seccomp."},
 			{Name: "SECCOMP_FILTER", Description: "Required for seccomp mode 2."},
 		},
+		OptionalCgroupsV1: []KernelConfig{
+			{Name: "CGROUP_HUGETLB", Description: "Required for hugetlb cgroup."},
+		},
+		OptionalCgroupsV2: []KernelConfig{
+			{Name: "CGROUP_HUGETLB", Description: "Required for hugetlb cgroup."},
+		},
 		Forbidden: []KernelConfig{},
 	},
 	Cgroups: []string{"cpu", "cpuacct", "cpuset", "devices", "freezer", "memory", "pids"},
