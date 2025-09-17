@@ -41,7 +41,6 @@ var DefaultSysSpec = SysSpec{
 			{Name: "PID_NS"},
 			{Name: "IPC_NS"},
 			{Name: "UTS_NS"},
-			{Name: "CGROUPS"},
 			{Name: "CPUSETS"},
 			{Name: "MEMCG"},
 			{Name: "INET"},
@@ -50,6 +49,20 @@ var DefaultSysSpec = SysSpec{
 			{Name: "NETFILTER_XT_TARGET_REDIRECT", Aliases: []string{"IP_NF_TARGET_REDIRECT"}},
 			{Name: "NETFILTER_XT_MATCH_COMMENT"},
 			{Name: "FAIR_GROUP_SCHED"},
+		},
+		RequiredCgroupsV1: []KernelConfig{
+			{Name: "CGROUPS", Description: "Required for cgroups."},
+			{Name: "CGROUP_CPUACCT", Description: "Required for cpuacct controller, used in simple CPU accounting controller."},
+			{Name: "CGROUP_DEVICE", Description: "Required for device controller."},
+			{Name: "CGROUP_FREEZER", Description: "Required for freezer controller."},
+			{Name: "CGROUP_PIDS", Description: "Required for PIDs controller."},
+			{Name: "CGROUP_SCHED", Description: "Required for CPU controller."},
+		},
+		RequiredCgroupsV2: []KernelConfig{
+			{Name: "CGROUPS", Description: "Required for cgroups."},
+			{Name: "CGROUP_BPF", Description: "Required for eBPF programs attached to cgroups, used in device controller."},
+			{Name: "CGROUP_PIDS", Description: "Required for PIDs controller."},
+			{Name: "CGROUP_SCHED", Description: "Required for CPU controller."},
 		},
 		Optional: []KernelConfig{
 			{Name: "OVERLAY_FS", Aliases: []string{"OVERLAYFS_FS"}, Description: "Required for overlayfs."},
