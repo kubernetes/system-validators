@@ -114,7 +114,7 @@ func (c *CgroupsValidator) Validate(spec SysSpec) (warns, errs []error) {
 		requiredCgroupSpec = spec.CgroupsV2
 		optionalCgroupSpec = spec.CgroupsV2Optional
 	} else {
-		warns = append(warns, errors.New("cgroups v1 support is in maintenance mode, please migrate to cgroups v2"))
+		errs = append(errs, errors.New("cgroups v1 support is deprecated and will be removed in a future release. Please migrate to cgroups v2. To explicitly enable cgroups v1 support, you must set the kubelet configuration option 'FailCgroupV1' to 'false'. For more information see https://git.k8s.io/enhancements/keps/sig-node/5573-cgroup-v1-unsupported"))
 		subsystems, err = c.getCgroupV1Subsystems()
 		if err != nil {
 			return nil, []error{fmt.Errorf("failed to get cgroups v1 subsystems: %w", err)}
