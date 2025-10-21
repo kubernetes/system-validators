@@ -197,3 +197,54 @@ cgroup /sys/fs/cgroup/memory cgroup rw,seclabel,nosuid,nodev,noexec,relatime,mem
 		})
 	}
 }
+
+func TestIsCgroupsV1DisabledInKubelet(t *testing.T) {
+	tests := []struct {
+		name           string
+		version        string
+		expectedResult bool
+		expectedError  bool
+	}{
+		{
+			name:          "invalid version",
+			version:       "foo",
+			expectedError: true,
+		},
+		{
+			name:           "empty version",
+			version:        "",
+			expectedResult: false,
+		},
+		{
+			name:           "version older than 1.35.0-0 causes a warning",
+			version:        "1.34.7",
+			expectedResult: false,
+		},
+		{
+			name:           "1.35.0 pre-release causes an error",
+			version:        "1.35.0-alpha.1",
+			expectedResult: true,
+		},
+		{
+			name:           "newer versions than 1.35 cause an error",
+			version:        "1.35.1",
+			expectedResult: true,
+		},
+	}
+
+	v := CgroupsValidator{}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			v.KubeletVersion = tc.version
+			result, err := v.isCgroupsV1DisabledInKubelet()
+
+			if (err != nil) != tc.expectedError {
+				t.Fatalf("expected error: %v, got: %v", tc.expectedError, err != nil)
+			}
+			if result != tc.expectedResult {
+				t.Fatalf("expected result: %v, got: %v", tc.expectedResult, result)
+			}
+		})
+	}
+}
