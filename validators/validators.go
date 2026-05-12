@@ -77,6 +77,7 @@ func ValidateSpec(spec SysSpec, containerRuntime string) ([]error, []error) {
 		validators = append(validators,
 			&CgroupsValidator{Reporter: DefaultReporter},
 			&packageValidator{reporter: DefaultReporter},
+			&nftablesValidator{reporter: DefaultReporter},
 		)
 	}
 
