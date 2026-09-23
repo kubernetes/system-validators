@@ -139,4 +139,7 @@ type SysSpec struct {
 	// PackageSpec defines the overrides of the required packages and their
 	// versions for an OS distro.
 	PackageSpecOverrides []PackageSpecOverride `json:"packageSpecOverrides,omitempty"`
+
+	// Nftables defines the requirement for nftables.
+	Nftables bool `json:"nftables,omitempty"`
 }
